@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace 必须和 Mapper 接口的全限定类名完全一致，否则 IDEA 和 MyBatis 都无法正确关联。 -->
+<mapper namespace="com.example.xiaozhimed.mapper.AppointmentMapper">
+
+
+</mapper>
