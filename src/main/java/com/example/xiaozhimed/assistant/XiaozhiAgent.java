@@ -14,5 +14,5 @@ import dev.langchain4j.service.spring.AiServiceWiringMode;
 public interface XiaozhiAgent {
 
     @SystemMessage(fromResource = "xiaozhi-prompt-template.txt")
-    String chat(@MemoryId String memoryId, @UserMessage String userMessage);
+    String chat(@MemoryId Long memoryId, @UserMessage String userMessage);
 }

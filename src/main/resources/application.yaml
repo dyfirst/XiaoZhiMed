@@ -5,10 +5,10 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/chat_memory_db
 
-  datasource:
-    url: jdbc:mysql://localhost:3306/sky_take_out?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
-    username: root
-    password: 123456
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/sky_take_out?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+#    username: root
+#    password: 123456
 
 mybatis:
   configuration:
@@ -31,4 +31,8 @@ logging:
   level:
     root: info
 
+springdoc:
+  swagger-ui:
+    # 将 Swagger UI 页面固定到 /doc.html，方便直接通过浏览器调试接口。
+    path: /doc.html
 
