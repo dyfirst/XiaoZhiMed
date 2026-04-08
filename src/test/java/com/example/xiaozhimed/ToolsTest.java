@@ -13,7 +13,7 @@ public class ToolsTest {
 
     @Test
     public void testCalculatorTools(){
-        String answer = separateMemoryChatAssistant.chat(1111, "15843624+256的平方根是多少");
+        String answer = separateMemoryChatAssistant.chat(2222, "15843624+256的平方根是多少");
         System.out.println(answer);
     }
 
