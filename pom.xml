@@ -91,6 +91,13 @@
             <version>2.5.0</version>
         </dependency>
 
+        <!-- pinecone -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-pinecone</artifactId>
+            <version>1.13.0-beta23</version>
+        </dependency>
+
     </dependencies>
 
 

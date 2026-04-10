@@ -33,6 +33,9 @@ langchain4j:
       chat-model:
         api-key: ${DASHSCOPE_API_KEY}
         model-name: qwen-plus
+      embedding-model:  #文本向量模型
+        api-key: ${DASHSCOPE_API_KEY}
+        model-name: text-embedding-v4
 
 logging:
   level:
