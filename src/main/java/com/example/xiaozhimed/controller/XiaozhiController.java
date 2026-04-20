@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 // 为 Swagger UI 标记当前控制器，方便在接口文档中定位小智相关能力。
 @Tag(name = "硅谷小智")
@@ -26,8 +27,8 @@ public class XiaozhiController {
 
     // 补充接口说明，便于在 Swagger UI 中直接调试和查看入参含义。
     @Operation(summary = "小智对话", description = "根据 memberId 维持会话记忆，并返回模型回复。")
-    @PostMapping("/chat")
-    public String chat(@RequestBody ChatForm chatForm) {
+    @PostMapping(value = "/chat", produces = "text/stream;charset=utf-8")
+    public Flux<String> chat(@RequestBody ChatForm chatForm) {
         Long memberId = chatForm.getMemberId();
         String message = chatForm.getMessage();
         long startTime = System.currentTimeMillis();
@@ -36,7 +37,7 @@ public class XiaozhiController {
         log.info("开始调用小智模型: memberId={}", memberId);
 
         try {
-            String answer = xiaozhiAgent.chat(memberId, message);
+            Flux<String> answer = xiaozhiAgent.chat(memberId, message);
             long cost = System.currentTimeMillis() - startTime;
 
             log.info("小智模型调用完成: memberId={}, cost={}ms, answer={}", memberId, cost, answer);

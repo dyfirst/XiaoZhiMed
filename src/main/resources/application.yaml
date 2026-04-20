@@ -4,11 +4,13 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/chat_memory_db
-
   datasource:
     url: jdbc:mysql://localhost:3306/guiguxiaozhi?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
     username: root
     password: 123456
+
+server:
+  port: 8080
 
 # 开启SQL日志打印
 mybatis-plus:
@@ -36,6 +38,9 @@ langchain4j:
       embedding-model:  #文本向量模型
         api-key: ${DASHSCOPE_API_KEY}
         model-name: text-embedding-v4
+      streaming-chat-model:
+        api-key: ${DASHSCOPE_API_KEY}
+        model-name: qwen-plus
 
 logging:
   level:
