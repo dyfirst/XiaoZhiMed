@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { marked } from 'marked';
 import type { ChatMessage } from '@/types/chat';
 
 const props = defineProps<{
@@ -7,6 +8,10 @@ const props = defineProps<{
 }>();
 
 const empty = computed(() => props.messages.length === 0);
+
+function renderMarkdown(content: string): string {
+  return marked.parse(content, { breaks: true }) as string;
+}
 
 function statusLabel(message: ChatMessage) {
   switch (message.status) {
@@ -64,7 +69,7 @@ function statusType(message: ChatMessage) {
           </el-tag>
         </div>
 
-        <pre class="message-body">{{ message.content || '...' }}</pre>
+        <div class="message-body" v-html="renderMarkdown(message.content || '...')"></div>
 
         <p v-if="message.errorMessage && message.status !== 'done'" class="message-error">
           {{ message.errorMessage }}
@@ -146,10 +151,31 @@ function statusType(message: ChatMessage) {
 
 .message-body {
   margin: 16px 0 0;
-  white-space: pre-wrap;
   word-break: break-word;
   font: 500 15px/1.75 'Trebuchet MS', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   color: var(--ink-soft);
+}
+
+.message-body :deep(p) {
+  margin: 8px 0;
+}
+
+.message-body :deep(strong) {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.message-body :deep(ul),
+.message-body :deep(ol) {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.message-body :deep(code) {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
 .message-error {
