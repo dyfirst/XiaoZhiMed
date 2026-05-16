@@ -2,7 +2,6 @@ package com.example.xiaozhimed;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
-import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -12,77 +11,165 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-
-import java.util.Arrays;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
 public class EmbeddingTest {
 
+    private static final String KNOWLEDGE_BASE_DIR = "D:/Java_projects/xiaozhiMed/src/main/resources/knowledge_base";
+
     @Autowired
     private EmbeddingModel embeddingModel;
 
-    @Test
-    public void testEmbeddingModel(){
-        Response<Embedding> embed = embeddingModel.embed("你好");
-        System.out.println("向量维度，" + embed.content().dimension());
-        System.out.println("向量输出，" + embed.toString());
-    }
-
     @Autowired
-    private EmbeddingStore embeddingStore;
+    private EmbeddingStore<TextSegment> embeddingStore;
 
     @Test
-    public void testEmbeddingStore(){
-        //将文本转换成向量
-        TextSegment segment1 = TextSegment.from("I like playing football");
-        Embedding embedding1 = embeddingModel.embed(segment1).content();
-
-        //存入向量数据库
-        embeddingStore.add(embedding1, segment1);
-
-        TextSegment segment2 = TextSegment.from("I like playing basketball");
-        Embedding embedding2 = embeddingModel.embed(segment2).content();
-        embeddingStore.add(embedding2, segment2);
+    public void testEmbeddingModel() {
+        Response<Embedding> embed = embeddingModel.embed("你好");
+        System.out.println("向量维度: " + embed.content().dimension());
     }
 
     @Test
-    public void testEmbeddingQuery(){
-        Embedding queryEmbedding = embeddingModel.embed("最近天气怎么样？").content();
+    public void testEmbeddingQuery() {
+        Embedding queryEmbedding = embeddingModel.embed("头疼挂什么科").content();
 
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding)
-                .maxResults(3)
-//                .minScore(0.8)
+                .maxResults(5)
+                .minScore(0.5)
                 .build();
 
         EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
 
-        EmbeddingMatch<TextSegment> embeddingMatch1 = searchResult.matches().get(0);
-        EmbeddingMatch<TextSegment> embeddingMatch2 = searchResult.matches().get(1);
-        System.out.println(embeddingMatch1.score() + " " + embeddingMatch1.embedded().text());
-        System.out.println();
-        System.out.println(embeddingMatch2.score() + " " + embeddingMatch2.embedded().text());
+        System.out.println("查询: 头疼挂什么科");
+        System.out.println("结果数: " + searchResult.matches().size());
+        for (EmbeddingMatch<TextSegment> match : searchResult.matches()) {
+            System.out.println("分数: " + match.score());
+            System.out.println("内容: " + match.embedded().text().substring(0, Math.min(100, match.embedded().text().length())));
+            System.out.println("---");
+        }
     }
 
+    /**
+     * 上传知识库到向量数据库
+     *
+     * 逻辑说明：
+     * 1. 扫描 knowledge_base/ 目录下所有 .md 文件
+     * 2. 每个文件 = 1个Document = 1个TextSegment = 1个向量
+     * 3. 不做切分，因为每个文件已经是原子语义单元：
+     *    - hospital.md     ~500字，完整医院信息
+     *    - departments/*.md ~300字，完整科室简介
+     *    - doctors/*.md     ~200字，完整医生信息
+     * 4. 逐个 embed + add 存入 Pinecone
+     */
     @Test
-    public void testUploadKnowledegeLibrary(){
+    public void testUploadKnowledgeBase() {
+        List<File> mdFiles = new ArrayList<>();
+        collectMdFiles(new File(KNOWLEDGE_BASE_DIR), mdFiles);
 
-        //使用默认的文档解析器对文档进行解析
-        Document document1 = FileSystemDocumentLoader.loadDocument("E:/JavaProjects/XiaoZhiMed/src/main/resources/knowledge/医院信息.md");
-        Document document2 = FileSystemDocumentLoader.loadDocument("E:/JavaProjects/XiaoZhiMed/src/main/resources/knowledge/科室信息.md");
-        Document document3 = FileSystemDocumentLoader.loadDocument("E:/JavaProjects/XiaoZhiMed/src/main/resources/knowledge/神经内科.md");
-        List<Document> documents = Arrays.asList(document1, document2, document3);
+        System.out.println("扫描到 " + mdFiles.size() + " 个知识文档");
 
-        //文本向量化并存入向量数据库，将每个片段进行向量化，得到一个嵌入向量
-        EmbeddingStoreIngestor.builder()
-                .embeddingStore(embeddingStore)
-                .embeddingModel(embeddingModel)
-                .documentSplitter(
-                        DocumentSplitters.recursive(300, 50) // 每300字符一段，重叠50
-                )
-                .build()
-                .ingest(documents);
+        int success = 0;
+        for (File file : mdFiles) {
+            try {
+                // 加载文档
+                Document document = FileSystemDocumentLoader.loadDocument(file.getAbsolutePath());
+
+                // 跳过空文档
+                if (document.text().trim().isEmpty()) {
+                    System.out.println("跳过空文件: " + file.getName());
+                    continue;
+                }
+
+                // 向量化
+                TextSegment segment = TextSegment.from(document.text());
+                Embedding embedding = embeddingModel.embed(segment).content();
+
+                // 存入向量库
+                embeddingStore.add(embedding, segment);
+
+                success++;
+                String relativePath = file.getAbsolutePath().replace(KNOWLEDGE_BASE_DIR + File.separator, "");
+                System.out.println("上传成功 [" + success + "]: " + relativePath
+                        + " (" + document.text().length() + "字)");
+
+            } catch (Exception e) {
+                System.out.println("上传失败: " + file.getName() + " - " + e.getMessage());
+            }
+        }
+
+        System.out.println("\n上传完成: 成功 " + success + "/" + mdFiles.size());
     }
 
+    /**
+     * 批量测试 RAG 召回效果
+     * 模拟 5 个典型用户问题，验证向量检索是否能召回正确内容
+     */
+    @Test
+    public void testBatchQuery() {
+        String[] queries = {
+                "华西医院地址在哪",
+                "头疼挂什么科",
+                "陈永平医生擅长什么",
+                "骨科哪个医生好",
+                "心内科能看什么病"
+        };
+
+        System.out.println("=" .repeat(60));
+        System.out.println("RAG 召回批量测试");
+        System.out.println("=".repeat(60));
+
+        for (int i = 0; i < queries.length; i++) {
+            System.out.println("\n【测试 " + (i + 1) + "】查询: " + queries[i]);
+            System.out.println("-".repeat(40));
+
+            Embedding queryEmbedding = embeddingModel.embed(queries[i]).content();
+
+            EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(3)
+                    .minScore(0.4)
+                    .build();
+
+            EmbeddingSearchResult<TextSegment> result = embeddingStore.search(request);
+
+            if (result.matches().isEmpty()) {
+                System.out.println("  ❌ 未召回任何结果");
+            } else {
+                for (int j = 0; j < result.matches().size(); j++) {
+                    EmbeddingMatch<TextSegment> match = result.matches().get(j);
+                    String content = match.embedded().text();
+                    // 截取前80个字符作为预览
+                    String preview = content.length() > 80
+                            ? content.substring(0, 80).replace("\n", " ") + "..."
+                            : content.replace("\n", " ");
+
+                    String rank = j == 0 ? "✅ Top1" : "   Top" + (j + 1);
+                    System.out.println("  " + rank + " [分数: " + String.format("%.4f", match.score()) + "] " + preview);
+                }
+            }
+        }
+
+        System.out.println("\n" + "=".repeat(60));
+        System.out.println("测试完成");
+    }
+
+    /**
+     * 递归收集目录下所有 .md 文件
+     */
+    private void collectMdFiles(File dir, List<File> result) {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                collectMdFiles(file, result);
+            } else if (file.getName().endsWith(".md")) {
+                result.add(file);
+            }
+        }
+    }
 }

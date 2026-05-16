@@ -9,12 +9,15 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Configuration
 public class XiaozhiAgentConfig {
 
@@ -23,10 +26,6 @@ public class XiaozhiAgentConfig {
 
     @Bean
     public ChatMemoryProvider chatMemoryProviderXiaozhi() {
-        // 返回一个 ChatMemoryProvider。
-        // 当 LangChain4j 收到不同的 memoryId 时，会调用这个 provider 的 get(memoryId)，
-        // 然后为该 memoryId 创建或读取一个对应的 ChatMemory。
-
         return new ChatMemoryProvider() {
             @Override
             public ChatMemory get(Object memoryId) {
@@ -47,31 +46,31 @@ public class XiaozhiAgentConfig {
 
     @Bean
     public ContentRetriever contentRetrieverXiaozhiPinecone() {
-
-        // 创建一个EmbeddingStoreContentRetriever对象，用于从嵌入存储中检索
         ContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
-                                        .embeddingModel(embeddingModel)
-                                        .embeddingStore(embeddingStore)
-                                        .maxResults(2)
-                                        .minScore(0.7)  // 只有得分大于等于0.8的结果才会返回
-                                        .build();
+                .embeddingModel(embeddingModel)
+                .embeddingStore(embeddingStore)
+                .maxResults(5)
+                .minScore(0.5)
+                .build();
 
-        // 👉 包一层代理
         return query -> {
-            List<Content> contents = retriever.retrieve(query);
+            try {
+                List<Content> contents = retriever.retrieve(query);
 
-            if (contents.isEmpty()) {
-                System.out.println("❌ RAG未命中");
-            } else {
-                System.out.println("✅ RAG命中，条数：" + contents.size());
-
-                for (Content c : contents) {
-                    System.out.println("---- RAG内容 ----");
-                    System.out.println(c); // ⭐ 关键！
+                if (contents.isEmpty()) {
+                    log.info("RAG未命中");
+                } else {
+                    log.info("RAG命中，条数: {}", contents.size());
+                    for (Content c : contents) {
+                        log.info("RAG内容: {}", c);
+                    }
                 }
-            }
 
-            return contents;
+                return contents;
+            } catch (Exception e) {
+                log.error("RAG检索失败，降级为无RAG模式", e);
+                return Collections.emptyList();
+            }
         };
     }
 }

@@ -1,0 +1,149 @@
+[
+  {
+    "symptom": "头痛",
+    "keywords": ["头疼", "偏头痛", "头痛", "头部疼痛"],
+    "departments": ["神经内科"],
+    "urgency": "normal",
+    "follow_up": "如伴呕吐、视力模糊、意识障碍需急诊"
+  },
+  {
+    "symptom": "头晕/眩晕",
+    "keywords": ["头晕", "眩晕", "天旋地转", "站不稳"],
+    "departments": ["神经内科", "耳鼻咽喉-头颈外科"],
+    "urgency": "normal",
+    "follow_up": "如伴肢体无力、言语不清需急诊"
+  },
+  {
+    "symptom": "肢体麻木/无力",
+    "keywords": ["手麻", "脚麻", "肢体无力", "半边没力气"],
+    "departments": ["神经内科"],
+    "urgency": "high",
+    "follow_up": "突发一侧肢体无力可能是脑卒中，请立即急诊"
+  },
+  {
+    "symptom": "抽搐/癫痫",
+    "keywords": ["抽搐", "癫痫", "抽筋", "意识丧失"],
+    "departments": ["神经内科"],
+    "urgency": "high",
+    "follow_up": "首次发作或持续发作请立即急诊"
+  },
+  {
+    "symptom": "胸痛",
+    "keywords": ["胸痛", "胸闷", "心口疼", "心脏疼"],
+    "departments": ["心脏内科"],
+    "urgency": "high",
+    "follow_up": "剧烈胸痛、胸闷持续不缓解请立即急诊，警惕心梗"
+  },
+  {
+    "symptom": "心悸",
+    "keywords": ["心悸", "心跳快", "心慌", "心跳不规律"],
+    "departments": ["心脏内科"],
+    "urgency": "normal",
+    "follow_up": "如伴胸痛、晕厥需急诊"
+  },
+  {
+    "symptom": "高血压",
+    "keywords": ["血压高", "高血压", "血压升高"],
+    "departments": ["心脏内科"],
+    "urgency": "normal",
+    "follow_up": "血压持续180/120以上或伴头痛呕吐需急诊"
+  },
+  {
+    "symptom": "咳嗽",
+    "keywords": ["咳嗽", "咳痰", "干咳", "久咳不愈"],
+    "departments": ["呼吸与危重症医学科"],
+    "urgency": "normal",
+    "follow_up": "咳嗽超过2周或伴咯血需尽快就诊"
+  },
+  {
+    "symptom": "呼吸困难",
+    "keywords": ["喘不上气", "呼吸困难", "气促", "憋气"],
+    "departments": ["呼吸与危重症医学科", "心脏内科"],
+    "urgency": "high",
+    "follow_up": "突发呼吸困难请立即急诊"
+  },
+  {
+    "symptom": "腹痛",
+    "keywords": ["肚子疼", "腹痛", "胃疼", "小腹疼"],
+    "departments": ["消化内科", "胃肠外科"],
+    "urgency": "normal",
+    "follow_up": "剧烈腹痛伴发热、呕吐需急诊"
+  },
+  {
+    "symptom": "腹泻",
+    "keywords": ["拉肚子", "腹泻", "水样便"],
+    "departments": ["消化内科"],
+    "urgency": "normal",
+    "follow_up": "严重脱水或血便需急诊"
+  },
+  {
+    "symptom": "关节疼痛",
+    "keywords": ["关节疼", "膝盖疼", "肩膀疼", "关节肿"],
+    "departments": ["骨科"],
+    "urgency": "normal",
+    "follow_up": "急性外伤导致的关节痛需急诊"
+  },
+  {
+    "symptom": "腰背痛",
+    "keywords": ["腰疼", "背疼", "腰椎疼", "腰间盘"],
+    "departments": ["骨科"],
+    "urgency": "normal",
+    "follow_up": "伴下肢放射痛或大小便障碍需急诊"
+  },
+  {
+    "symptom": "骨折/外伤",
+    "keywords": ["骨折", "摔伤", "扭伤", "外伤"],
+    "departments": ["骨科", "急诊科"],
+    "urgency": "high",
+    "follow_up": "开放性骨折或大量出血请立即急诊"
+  },
+  {
+    "symptom": "排尿异常",
+    "keywords": ["尿频", "尿急", "尿痛", "血尿", "排尿困难"],
+    "departments": ["泌尿外科"],
+    "urgency": "normal",
+    "follow_up": "无尿或大量血尿需急诊"
+  },
+  {
+    "symptom": "血糖异常",
+    "keywords": ["血糖高", "糖尿病", "多饮多尿", "低血糖"],
+    "departments": ["内分泌代谢科"],
+    "urgency": "normal",
+    "follow_up": "血糖极高或意识模糊需急诊"
+  },
+  {
+    "symptom": "甲状腺问题",
+    "keywords": ["甲状腺", "脖子肿", "甲亢", "甲减"],
+    "departments": ["内分泌代谢科"],
+    "urgency": "normal",
+    "follow_up": ""
+  },
+  {
+    "symptom": "皮肤问题",
+    "keywords": ["皮疹", "瘙痒", "红疹", "皮肤过敏", "痘痘"],
+    "departments": ["皮肤性病科"],
+    "urgency": "normal",
+    "follow_up": "伴呼吸困难的严重过敏需急诊"
+  },
+  {
+    "symptom": "视力问题",
+    "keywords": ["视力下降", "眼睛疼", "看不清", "眼睛红"],
+    "departments": ["眼科"],
+    "urgency": "normal",
+    "follow_up": "突发视力丧失需急诊"
+  },
+  {
+    "symptom": "耳鼻喉问题",
+    "keywords": ["耳鸣", "听力下降", "鼻塞", "流鼻血", "嗓子疼"],
+    "departments": ["耳鼻咽喉-头颈外科"],
+    "urgency": "normal",
+    "follow_up": ""
+  },
+  {
+    "symptom": "肾脏问题",
+    "keywords": ["肾病", "蛋白尿", "泡沫尿", "水肿"],
+    "departments": ["肾脏内科"],
+    "urgency": "normal",
+    "follow_up": "严重水肿或少尿需尽快就诊"
+  }
+]
