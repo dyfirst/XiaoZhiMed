@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.time.LocalDate;
+
 // 为 Swagger UI 标记当前控制器，方便在接口文档中定位小智相关能力。
 @Tag(name = "硅谷小智")
 @RestController
@@ -37,7 +39,7 @@ public class XiaozhiController {
         log.info("开始调用小智模型: memberId={}", memberId);
 
         try {
-            Flux<String> answer = xiaozhiAgent.chat(memberId, message);
+            Flux<String> answer = xiaozhiAgent.chat(memberId, message, LocalDate.now().toString());
             long cost = System.currentTimeMillis() - startTime;
 
             log.info("小智模型调用完成: memberId={}, cost={}ms, answer={}", memberId, cost, answer);

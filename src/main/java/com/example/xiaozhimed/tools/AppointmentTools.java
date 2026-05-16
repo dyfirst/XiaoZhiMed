@@ -14,7 +14,7 @@ public class AppointmentTools {
     @Autowired
     private AppointmentService appointmentService;
 
-    @Tool(name = "预约挂号", value = "根据参数，先执行工具方法queryDepartment查询是否可预约，并直接给用户回答是否可预约，并让用户确认所有预约信息，用户确认后再进行预约。如果用户没有提供具体的医生姓名，请从向量存储中找到一位医生。")
+    @Tool(name = "预约挂号", value = "在用户确认所有预约信息后调用此工具完成预约。如果用户没有提供具体的医生姓名，请从向量存储中推荐一位医生。预约前请确保已收集完整信息并让用户确认。")
     public String bookAppointment(Appointment appointment) {
         log.info("AI调用预约工具: {}", appointment);
         // 查找数据库中是否包含对应的预约记录
