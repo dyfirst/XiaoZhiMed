@@ -1,179 +1,139 @@
-# xiaozhiMed
+# XiaoZhiMed - 智能医疗问诊助手
 
-一个基于 Spring Boot 的练手项目，当前主要用于学习和验证以下内容：
-
-- Spring Boot 基础项目搭建
-- MyBatis 访问 MySQL
-- RESTful 风格接口设计
-- LangChain4j 接入大模型
+一个基于 Spring Boot + Vue 3 + LangChain4j 的 AI 医疗问诊和预约挂号系统。通过大模型实现智能分诊、医疗咨询和预约管理。
 
 ## 技术栈
 
-- Java 17
-- Spring Boot 3.2.6
-- MyBatis Spring Boot Starter 3.0.4
-- MySQL
-- Maven
-- LangChain4j
+**后端**
+- Java 17 / Spring Boot 3.2.6
+- LangChain4j 1.13.0-beta（LLM 集成、Tool Calling、RAG）
+- DashScope 通义千问（qwen-plus / text-embedding-v4）
+- Pinecone 向量数据库
+- MyBatis-Plus + MySQL（预约数据）
+- MongoDB（对话记忆持久化）
+- Spring WebFlux（流式输出）
 
-## 当前功能
+**前端**
+- Vue 3 + TypeScript + Vite
+- Pinia 状态管理
+- Element Plus 组件库
+- marked（Markdown 渲染）
 
-### 1. Employee RESTful 增删改查
+## 系统架构
 
-基于 `sky_take_out.employee` 表实现了基础 CRUD 接口。
+```
+用户 → Vue 3 前端 → Spring Boot 后端 → 通义千问 LLM
+                         ↓
+         ┌───────────────┼───────────────┐
+         ↓               ↓               ↓
+    Pinecone RAG    MongoDB 记忆     MySQL 预约
+```
 
-接口列表：
+## 核心功能
 
-- `GET /employees` 查询全部员工
-- `GET /employees/{id}` 按 id 查询员工
-- `POST /employees` 新增员工
-- `PUT /employees/{id}` 修改员工
-- `DELETE /employees/{id}` 删除员工
+### 1. AI 智能问诊（流式对话）
+- 基于通义千问大模型的医疗咨询
+- 流式输出，逐字显示回复
+- 支持多会话管理，历史记录持久化
+- Markdown 格式渲染
 
-### 2. 大模型接入测试
+### 2. RAG 知识增强
+- 医院信息、科室列表、医生资料等知识文档存入 Pinecone 向量库
+- 文本分块（300 字/块，50 字重叠）后向量化
+- 用户提问时自动召回相关知识，注入 LLM 上下文
+- 召回日志记录，便于调试和优化
 
-项目中已经接入了阿里百炼相关配置，当前用于测试：
+### 3. Tool Calling 预约管理
+- LLM 自动判断何时调用预约工具
+- 支持预约挂号、取消预约、查询号源
+- 预约前自动收集完整信息（姓名、身份证、科室、日期、时间）
+- 数据持久化到 MySQL
 
-- OpenAI 兼容接口调用
-- DashScope Qwen 模型调用
+### 4. 对话记忆
+- MongoDB 存储每个用户的对话历史
+- 支持多用户独立记忆空间
+- 滑动窗口机制，保留最近 20 条消息
 
-测试类位置：
+### 5. 系统提示词工程
+- 角色定义：医疗顾问 + 伴诊助手
+- 流程约束：信息收集 → 号源查询 → 用户确认 → 执行预约
+- 安全兜底：严重症状建议就医、禁止编造信息、免责声明
+- 动态日期注入
 
-- `src/test/java/com/example/xiaozhimed/langchain4j/LLMTest.java`
+## 项目结构
+
+```
+xiaozhiMed
+├── src/main/java/com/example/xiaozhimed
+│   ├── assistant/          # AI Agent 接口定义
+│   ├── config/             # Bean 配置（LLM、RAG、记忆）
+│   ├── controller/         # REST 接口
+│   ├── entity/             # 数据库实体
+│   ├── mapper/             # MyBatis Mapper
+│   ├── service/            # 业务逻辑
+│   ├── store/              # MongoDB 聊天存储
+│   ├── tools/              # LLM 工具（预约、计算器）
+│   └── bean/               # 请求/响应对象
+├── src/main/resources
+│   ├── application.yaml    # 配置文件
+│   ├── knowledge/          # RAG 知识文档
+│   ├── xiaozhi-prompt-template.txt  # 系统提示词
+│   └── mapper/             # MyBatis XML
+├── frontend/               # Vue 3 前端
+│   ├── src/views/          # 页面组件
+│   ├── src/components/     # 通用组件
+│   ├── src/stores/         # Pinia 状态管理
+│   ├── src/api/            # HTTP 请求封装
+│   └── src/composables/    # 组合式函数
+└── pom.xml
+```
 
 ## 运行环境
-
-启动项目前请准备：
 
 - JDK 17
 - Maven 3.9+
 - MySQL 8.x
+- MongoDB 7.x
+- Node.js 18+（前端）
 
-## 数据库配置
+## 环境变量
 
-当前默认连接的是本地 MySQL：
+启动前需设置以下环境变量：
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/sky_take_out?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
-    username: root
-    password: 123456
-```
-
-请确保：
-
-- 本地 MySQL 已启动
-- 存在 `sky_take_out` 数据库
-- 存在 `employee` 表
-- 用户名和密码与本地环境一致
-
-## 大模型配置
-
-当前 `application.yaml` 中包含大模型配置。
-
-建议不要将真实 API Key 明文提交到仓库，推荐改为环境变量形式，例如：
-
-```yaml
-langchain4j:
-  community:
-    dashscope:
-      chat-model:
-        api-key: ${DASHSCOPE_API_KEY}
-        model-name: qwen-max
+```bash
+export DASHSCOPE_API_KEY=你的阿里百炼API Key
+export PINECONE_API_KEY=你的Pinecone API Key
 ```
 
 ## 启动项目
 
-在项目根目录执行：
+**后端**
 
 ```bash
 mvnw.cmd spring-boot:run
 ```
 
-启动成功后可访问接口，例如：
-
-```text
-http://localhost:8080/employees
-```
-
-## 运行测试
-
-运行全部测试：
+**前端**
 
 ```bash
-mvnw.cmd test
+cd frontend
+npm install
+npm run dev
 ```
 
-单独运行大模型测试：
+## 访问地址
 
-```bash
-mvnw.cmd -Dtest=LLMTest test
-```
+| 地址 | 说明 |
+|------|------|
+| `http://localhost:5173` | 前端页面 |
+| `http://localhost:8080/doc.html` | Swagger API 文档 |
 
-## 示例请求
+## API 接口
 
-新增员工：
-
-```http
-POST /employees
-Content-Type: application/json
-
-{
-  "name": "测试员工",
-  "username": "test01",
-  "password": "123456",
-  "phone": "13812345678",
-  "sex": "1",
-  "idNumber": "110101199001010011",
-  "status": 1,
-  "createUser": 1,
-  "updateUser": 1
-}
-```
-
-修改员工：
-
-```http
-PUT /employees/1
-Content-Type: application/json
-
-{
-  "name": "管理员-修改",
-  "username": "admin",
-  "password": "123456",
-  "phone": "13800000000",
-  "sex": "1",
-  "idNumber": "110101199001010047",
-  "status": 1,
-  "updateUser": 1
-}
-```
-
-## 目录结构
-
-```text
-src
-├─ main
-│  ├─ java/com/example/xiaozhimed
-│  │  ├─ controller
-│  │  ├─ entity
-│  │  ├─ mapper
-│  │  └─ service
-│  └─ resources
-│     └─ application.yaml
-└─ test
-   └─ java/com/example/xiaozhimed
-      ├─ controller
-      └─ langchain4j
-```
-
-## 说明
-
-这个项目目前处于学习和迭代阶段，后续可以继续补充：
-
-- 统一返回结果封装
-- DTO / VO 分层
-- 分页查询
-- 登录认证
-- AI 聊天接口封装
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/xiaozhi/chat` | AI 对话（流式） |
+| GET | `/appointments` | 查询预约列表 |
+| GET | `/appointments/{id}` | 查询单个预约 |
+| POST | `/appointments` | 创建预约 |
+| DELETE | `/appointments/{id}` | 删除预约 |
