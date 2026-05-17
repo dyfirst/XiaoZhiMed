@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import type { ChatMessage } from '@/types/chat';
 
 const props = defineProps<{
@@ -10,7 +11,8 @@ const props = defineProps<{
 const empty = computed(() => props.messages.length === 0);
 
 function renderMarkdown(content: string): string {
-  return marked.parse(content, { breaks: true }) as string;
+  const html = marked.parse(content, { breaks: true }) as string;
+  return DOMPurify.sanitize(html);
 }
 
 function statusLabel(message: ChatMessage) {

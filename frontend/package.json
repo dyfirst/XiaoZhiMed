@@ -13,6 +13,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "dompurify": "^3.4.3",
     "element-plus": "^2.10.2",
     "marked": "^18.0.3",
     "pinia": "^3.0.2",

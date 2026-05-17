@@ -40,9 +40,20 @@ export function useChatStream() {
 
       const decoder = new TextDecoder('utf-8');
       let fullText = '';
+      const CHUNK_TIMEOUT = 30000; // 30秒无新数据则超时
 
       while (true) {
-        const { done, value } = await reader.read();
+        // 每次read设置超时
+        const timeoutId = setTimeout(() => currentController.abort(), CHUNK_TIMEOUT);
+
+        let result;
+        try {
+          result = await reader.read();
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        const { done, value } = result;
         if (done) {
           break;
         }
@@ -65,7 +76,7 @@ export function useChatStream() {
       if (currentController.signal.aborted) {
         chatStore.patchMessage(sessionId, assistantMessageId, {
           status: 'interrupted',
-          errorMessage: '本次回答已被打断',
+          errorMessage: '本次回答已被打断或超时',
         });
         return;
       }
