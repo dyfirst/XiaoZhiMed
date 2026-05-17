@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.LocalDate;
+
 @SpringBootTest
 public class AppointmentToolTest {
 
@@ -13,7 +15,8 @@ public class AppointmentToolTest {
 
     @Test
     public void test() {
-        String answer = xiaozhiAgent.chat(2L,"我想预约明天下午的神经外科");
+        String answer = xiaozhiAgent.chat(2L,"我想预约明天下午的神经外科", LocalDate.now().toString())
+                .collectList().block().toString();
         System.out.println(answer);
     }
 

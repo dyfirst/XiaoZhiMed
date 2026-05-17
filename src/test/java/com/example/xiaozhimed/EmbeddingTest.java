@@ -158,6 +158,109 @@ public class EmbeddingTest {
     }
 
     /**
+     * 测试不同 minScore 的召回质量
+     */
+    @Test
+    public void testMinScore() {
+        String[] queries = {
+                "华西医院地址在哪",
+                "头疼挂什么科",
+                "陈永平医生擅长什么",
+                "骨科哪个医生好",
+                "心内科能看什么病"
+        };
+
+        double[] minScoreOptions = {0.5, 0.6, 0.65, 0.7};
+
+        System.out.println("=".repeat(70));
+        System.out.println("minScore 召回质量测试 (maxResults=3)");
+        System.out.println("=".repeat(70));
+
+        for (double minScore : minScoreOptions) {
+            int totalHits = 0;
+            int emptyQueries = 0;
+
+            System.out.println("\n【minScore=" + minScore + "】");
+            System.out.println("-".repeat(50));
+
+            for (String query : queries) {
+                Embedding queryEmbedding = embeddingModel.embed(query).content();
+                EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                        .queryEmbedding(queryEmbedding)
+                        .maxResults(3)
+                        .minScore(minScore)
+                        .build();
+                EmbeddingSearchResult<TextSegment> result = embeddingStore.search(request);
+
+                int hits = result.matches().size();
+                totalHits += hits;
+
+                if (hits == 0) {
+                    emptyQueries++;
+                    System.out.println("  ❌ \"" + query + "\" → 无结果");
+                } else {
+                    String top1Preview = result.matches().get(0).embedded().text().split("\n")[0];
+                    if (top1Preview.length() > 25) top1Preview = top1Preview.substring(0, 25) + "...";
+
+                    System.out.println("  ✅ \"" + query + "\" → " + hits + "条, Top1["
+                            + String.format("%.3f", result.matches().get(0).score()) + "] " + top1Preview);
+                }
+            }
+
+            double avgHits = (double) totalHits / queries.length;
+            System.out.println("  汇总: 平均召回=" + String.format("%.1f", avgHits) + ", 空查询=" + emptyQueries);
+        }
+
+        System.out.println("\n" + "=".repeat(70));
+    }
+
+    /**
+     * 测试不同 maxResults 的响应时间
+     */
+    @Test
+    public void testPerformance() {
+        String[] queries = {
+                "华西医院地址在哪",
+                "头疼挂什么科",
+                "陈永平医生擅长什么",
+                "骨科哪个医生好",
+                "心内科能看什么病"
+        };
+
+        int[] maxResultsOptions = {3, 5, 7};
+
+        System.out.println("=".repeat(60));
+        System.out.println("RAG 响应时间测试");
+        System.out.println("=".repeat(60));
+
+        for (int maxResults : maxResultsOptions) {
+            long totalTime = 0;
+
+            for (String query : queries) {
+                long start = System.currentTimeMillis();
+
+                Embedding queryEmbedding = embeddingModel.embed(query).content();
+                EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                        .queryEmbedding(queryEmbedding)
+                        .maxResults(maxResults)
+                        .minScore(0.5)
+                        .build();
+                embeddingStore.search(request);
+
+                long cost = System.currentTimeMillis() - start;
+                totalTime += cost;
+            }
+
+            double avgTime = (double) totalTime / queries.length;
+            System.out.println("maxResults=" + maxResults
+                    + " | 总耗时=" + totalTime + "ms"
+                    + " | 平均=" + String.format("%.1f", avgTime) + "ms/次");
+        }
+
+        System.out.println("=".repeat(60));
+    }
+
+    /**
      * 递归收集目录下所有 .md 文件
      */
     private void collectMdFiles(File dir, List<File> result) {
