@@ -1,6 +1,8 @@
 package com.example.xiaozhimed.controller;
 
+import com.example.xiaozhimed.bean.Result;
 import com.example.xiaozhimed.entity.Appointment;
+import com.example.xiaozhimed.exception.BizException;
 import com.example.xiaozhimed.service.AppointmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
-// 暴露预约挂号的基础 CRUD 接口，便于直接验证 MySQL 和 MyBatis-Plus 是否已经打通。
 @Tag(name = "预约管理")
 @RestController
 @RequestMapping("/appointments")
@@ -26,27 +28,33 @@ public class AppointmentController {
 
     @Operation(summary = "新增预约", description = "将预约信息写入 MySQL 的 appointment 表。")
     @PostMapping
-    public Appointment save(@RequestBody Appointment appointment) {
-        // 保存成功后回写自增主键，便于前端或测试直接拿到数据库记录 ID。
+    public Result<Appointment> save(@Valid @RequestBody Appointment appointment) {
         appointmentService.save(appointment);
-        return appointment;
+        return Result.success(appointment);
     }
 
     @Operation(summary = "查询单条预约", description = "根据主键 id 查询预约记录。")
     @GetMapping("/{id}")
-    public Appointment getById(@PathVariable Long id) {
-        return appointmentService.getById(id);
+    public Result<Appointment> getById(@PathVariable Long id) {
+        Appointment appointment = appointmentService.getById(id);
+        if (appointment == null) {
+            throw new BizException(404, "预约记录不存在");
+        }
+        return Result.success(appointment);
     }
 
     @Operation(summary = "查询全部预约", description = "返回 appointment 表中的所有预约记录。")
     @GetMapping
-    public List<Appointment> list() {
-        return appointmentService.list();
+    public Result<List<Appointment>> list() {
+        return Result.success(appointmentService.list());
     }
 
     @Operation(summary = "删除预约", description = "根据主键 id 删除预约记录。")
     @DeleteMapping("/{id}")
-    public boolean removeById(@PathVariable Long id) {
-        return appointmentService.removeById(id);
+    public Result<Boolean> removeById(@PathVariable Long id) {
+        if (appointmentService.getById(id) == null) {
+            throw new BizException(404, "预约记录不存在");
+        }
+        return Result.success(appointmentService.removeById(id));
     }
 }
