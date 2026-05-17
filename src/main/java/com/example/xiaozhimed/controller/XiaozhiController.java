@@ -4,6 +4,7 @@ import com.example.xiaozhimed.assistant.XiaozhiAgent;
 import com.example.xiaozhimed.bean.ChatForm;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 
 // 为 Swagger UI 标记当前控制器，方便在接口文档中定位小智相关能力。
@@ -27,28 +30,30 @@ public class XiaozhiController {
     @Autowired
     private XiaozhiAgent xiaozhiAgent;
 
-    // 补充接口说明，便于在 Swagger UI 中直接调试和查看入参含义。
     @Operation(summary = "小智对话", description = "根据 memberId 维持会话记忆，并返回模型回复。")
     @PostMapping(value = "/chat", produces = "text/stream;charset=utf-8")
-    public Flux<String> chat(@RequestBody ChatForm chatForm) {
+    public Flux<String> chat(@Valid @RequestBody ChatForm chatForm) {
         Long memberId = chatForm.getMemberId();
         String message = chatForm.getMessage();
         long startTime = System.currentTimeMillis();
 
         log.info("收到小智对话请求: memberId={}, message={}", memberId, message);
-        log.info("开始调用小智模型: memberId={}", memberId);
 
-        try {
-            Flux<String> answer = xiaozhiAgent.chat(memberId, message, LocalDate.now().toString());
-            long cost = System.currentTimeMillis() - startTime;
+        LocalDate today = LocalDate.now();
+        String[] dayNames = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+        String dayOfWeek = dayNames[today.getDayOfWeek().getValue() - 1];
+        String currentDate = today + "（" + dayOfWeek + "）";
 
-            log.info("小智模型调用完成: memberId={}, cost={}ms, answer={}", memberId, cost, answer);
-            return answer;
-        } catch (Exception e) {
-            long cost = System.currentTimeMillis() - startTime;
-
-            log.error("小智模型调用失败: memberId={}, cost={}ms", memberId, cost, e);
-            throw e;
-        }
+        return xiaozhiAgent.chat(memberId, message, currentDate)
+                .timeout(Duration.ofSeconds(60))
+                .doOnError(e -> log.error("小智模型调用失败: memberId={}, cost={}ms",
+                        memberId, System.currentTimeMillis() - startTime, e))
+                .onErrorResume(e -> {
+                    String errorMsg = "抱歉，AI响应异常，请稍后再试";
+                    if (e.getMessage() != null && e.getMessage().contains("JsonEOF")) {
+                        errorMsg = "抱歉，AI处理请求时出现问题，请重试一次";
+                    }
+                    return Flux.just(errorMsg);
+                });
     }
 }
