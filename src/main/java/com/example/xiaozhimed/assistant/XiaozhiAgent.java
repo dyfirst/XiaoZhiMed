@@ -20,6 +20,9 @@ import java.time.LocalDate;
 )
 public interface XiaozhiAgent {
 
-    @SystemMessage(fromResource = "xiaozhi-prompt-template.txt")
-    Flux<String> chat(@MemoryId Long memoryId, @UserMessage String userMessage, @V("current_date") String currentDate);
+    @SystemMessage("{{prompt_content}}")
+    Flux<String> chat(@MemoryId Long memoryId,
+                      @UserMessage String userMessage,
+                      @V("current_date") String currentDate,
+                      @V("prompt_content") String promptContent);
 }

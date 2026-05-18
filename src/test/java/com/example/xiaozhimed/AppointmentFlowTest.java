@@ -22,6 +22,7 @@ public class AppointmentFlowTest {
 
     private static final Long TEST_USER_ID = 888888L;
     private static final String TODAY = LocalDate.now().toString();
+    private static final String PROMPT = TestPromptSupport.loadPrompt();
 
     /**
      * 测试完整的预约流程：聊天 → 工具调用 → 写入数据库 → 查询验证
@@ -129,7 +130,7 @@ public class AppointmentFlowTest {
     }
 
     private String chat(String message) {
-        List<String> response = xiaozhiAgent.chat(TEST_USER_ID, message, TODAY)
+        List<String> response = xiaozhiAgent.chat(TEST_USER_ID, message, TODAY, PROMPT)
                 .collectList().block();
         return String.join("", response);
     }

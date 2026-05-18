@@ -16,6 +16,7 @@ public class MultiTurnTest {
 
     private static final Long TEST_USER_ID = 999999L;
     private static final String TODAY = LocalDate.now().toString();
+    private static final String PROMPT = TestPromptSupport.loadPrompt();
 
     /**
      * 测试场景1：完整的预约挂号流程
@@ -38,7 +39,7 @@ public class MultiTurnTest {
             System.out.println("\n【第" + (i + 1) + "轮】用户: " + messages[i]);
             System.out.println("-".repeat(40));
 
-            List<String> response = xiaozhiAgent.chat(TEST_USER_ID, messages[i], TODAY)
+            List<String> response = xiaozhiAgent.chat(TEST_USER_ID, messages[i], TODAY, PROMPT)
                     .collectList().block();
 
             String fullResponse = String.join("", response);
@@ -76,7 +77,7 @@ public class MultiTurnTest {
             System.out.println("\n【第" + (i + 1) + "轮】用户: " + messages[i]);
             System.out.println("-".repeat(40));
 
-            List<String> response = xiaozhiAgent.chat(TEST_USER_ID + 1, messages[i], TODAY)
+            List<String> response = xiaozhiAgent.chat(TEST_USER_ID + 1, messages[i], TODAY, PROMPT)
                     .collectList().block();
 
             String fullResponse = String.join("", response);

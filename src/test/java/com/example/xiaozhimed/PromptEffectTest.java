@@ -11,6 +11,7 @@ import java.util.List;
 @SpringBootTest
 public class PromptEffectTest {
 
+    private static final String PROMPT = TestPromptSupport.loadPrompt();
     @Autowired
     private XiaozhiAgent xiaozhiAgent;
 
@@ -34,7 +35,7 @@ public class PromptEffectTest {
             System.out.println("\n【测试 " + (i + 1) + "】用户: " + queries[i]);
             System.out.println("-".repeat(50));
 
-            List<String> response = xiaozhiAgent.chat(TEST_USER_ID + i, queries[i], TODAY)
+            List<String> response = xiaozhiAgent.chat(TEST_USER_ID + i, queries[i], TODAY, PROMPT)
                     .collectList().block();
             String fullResponse = String.join("", response);
 
