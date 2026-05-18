@@ -1,7 +1,11 @@
 package com.example.xiaozhimed.controller;
 
+import com.example.xiaozhimed.assistant.ChatOnlyAgent;
+import com.example.xiaozhimed.assistant.ToolOnlyAgent;
 import com.example.xiaozhimed.assistant.XiaozhiAgent;
 import com.example.xiaozhimed.bean.ChatForm;
+import com.example.xiaozhimed.bean.IntentRouteDecision;
+import com.example.xiaozhimed.service.IntentRouteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,6 +43,15 @@ public class XiaozhiController {
     @Autowired
     private XiaozhiAgent xiaozhiAgent;
 
+    @Autowired
+    private ToolOnlyAgent toolOnlyAgent;
+
+    @Autowired
+    private ChatOnlyAgent chatOnlyAgent;
+
+    @Autowired
+    private IntentRouteService intentRouteService;
+
     @Operation(summary = "小智对话", description = "根据 memberId 维持会话记忆，并返回模型回复。")
     @PostMapping(value = "/chat", produces = "text/stream;charset=utf-8")
     public Flux<String> chat(@Valid @RequestBody ChatForm chatForm) {
@@ -67,7 +80,13 @@ public class XiaozhiController {
             return Flux.just("抱歉，系统提示词加载失败，请稍后再试");
         }
 
-        return xiaozhiAgent.chat(memberId, message, currentDate, promptContent)
+        IntentRouteDecision routeDecision = intentRouteService.route(memberId, message);
+        log.info("意图路由结果: memberId={}, route={}, confidence={}, reason={}",
+                memberId, routeDecision.getRoute(), routeDecision.getConfidence(), routeDecision.getReason());
+
+        Flux<String> responseFlux = buildResponseFlux(routeDecision.getRoute(), memberId, message, currentDate, promptContent);
+
+        return responseFlux
                 .timeout(Duration.ofSeconds(60))
                 .doOnError(e -> log.error("小智模型调用失败: memberId={}, cost={}ms",
                         memberId, System.currentTimeMillis() - startTime, e))
@@ -89,5 +108,13 @@ public class XiaozhiController {
         ClassPathResource resource = new ClassPathResource(PROMPT_RESOURCE_PATH);
         String template = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
         return template.replace(CURRENT_DATE_PLACEHOLDER, currentDate);
+    }
+
+    private Flux<String> buildResponseFlux(String route, Long memberId, String message, String currentDate, String promptContent) {
+        return switch (route) {
+            case "TOOL" -> toolOnlyAgent.chat(memberId, message, currentDate, promptContent);
+            case "CHAT" -> chatOnlyAgent.chat(memberId, message, currentDate, promptContent);
+            default -> xiaozhiAgent.chat(memberId, message, currentDate, promptContent);
+        };
     }
 }

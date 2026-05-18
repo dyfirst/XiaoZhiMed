@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -105,6 +106,42 @@ public class AppointmentTools {
             log.error("取消预约工具执行异常", e);
             return "取消预约失败：系统异常，请稍后再试";
         }
+    }
+
+    @Tool(name = "查询我的预约记录", value = "当用户询问自己的预约记录、已预约号源、已挂的号时调用。必须先确认用户姓名和身份证号，查询成功后返回用户当前的预约列表。")
+    public String queryMyAppointments(
+            @P(value = "姓名") String username,
+            @P(value = "身份证号") String idCard
+    ) {
+        log.info("AI调用预约记录查询工具: username={}, idCard={}", username, idCard);
+
+        if (StringUtils.isBlank(username)) {
+            return "查询失败：请先提供您的姓名";
+        }
+        if (StringUtils.isBlank(idCard)) {
+            return "查询失败：请先提供您的身份证号";
+        }
+
+        List<Appointment> appointments = appointmentService.lambdaQuery()
+                .eq(Appointment::getUsername, username)
+                .eq(Appointment::getIdCard, idCard)
+                .orderByAsc(Appointment::getDate)
+                .orderByAsc(Appointment::getTime)
+                .list();
+
+        if (appointments.isEmpty()) {
+            return "当前未查询到您的预约记录，请确认姓名和身份证号是否正确。";
+        }
+
+        List<String> lines = new ArrayList<>();
+        lines.add("已为您查询到以下预约记录：");
+        for (Appointment appointment : appointments) {
+            String doctorPart = StringUtils.isBlank(appointment.getDoctorName()) ? "未指定医生" : appointment.getDoctorName();
+            lines.add("- " + appointment.getDate() + " " + appointment.getTime()
+                    + "｜" + appointment.getDepartment()
+                    + "｜" + doctorPart);
+        }
+        return String.join("\n", lines);
     }
 
     @Tool(name = "查询排班与号源", value = "查询指定科室的医生排班和号源情况。当用户问'有哪些医生'、'哪个医生好'、'医生排班'、'有号吗'等问题时，都应调用此工具。如果用户未指定日期，默认查询最近的工作日。如果用户未指定医生，返回该科室所有排班医生列表。注意：不要编造医生姓名。")

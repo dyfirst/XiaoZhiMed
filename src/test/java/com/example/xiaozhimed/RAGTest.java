@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.List;
+
 @SpringBootTest
 public class RAGTest {
 
@@ -151,5 +153,122 @@ public class RAGTest {
         }
 
         System.out.println("\n测试完成");
+    }
+
+    /**
+     * 用带标签样本评估 minScore：
+     * 1. 正例：应该召回到目标知识
+     * 2. 反例：不应该召回静态知识
+     *
+     * 这样可以更直观看到 minScore 过低时的误召回，以及过高时的漏召回。
+     */
+    @Test
+    public void testMinScoreWithLabeledCases() {
+        List<RagEvalCase> cases = List.of(
+                new RagEvalCase("华西医院地址在哪", true, List.of("国学巷37号", "华西坝院区")),
+                new RagEvalCase("头疼挂什么科", true, List.of("神经内科")),
+                new RagEvalCase("陈永平医生擅长什么", true, List.of("帕金森病", "运动神经元病")),
+                new RagEvalCase("神经外科有哪些医生", true, List.of("神经外科", "马潞", "蔡博文")),
+                new RagEvalCase("急诊科怎么走", true, List.of("急诊", "24小时")),
+                new RagEvalCase("帮我查询我目前有哪些预约", false, List.of()),
+                new RagEvalCase("你好", false, List.of()),
+                new RagEvalCase("谢谢", false, List.of())
+        );
+
+        double[] minScoreOptions = {0.55, 0.60, 0.65, 0.70, 0.75, 0.80};
+        int maxResults = 3;
+
+        System.out.println("=".repeat(80));
+        System.out.println("minScore 带标签评估 (maxResults=" + maxResults + ")");
+        System.out.println("正例目标：命中目标知识；反例目标：不召回静态知识");
+        System.out.println("=".repeat(80));
+
+        double bestScore = -1;
+        double bestMinScore = 0.65;
+
+        for (double minScore : minScoreOptions) {
+            int positiveCount = 0;
+            int positiveHit = 0;
+            int top1Hit = 0;
+            int negativeCount = 0;
+            int negativeClean = 0;
+
+            System.out.println("\n【minScore=" + minScore + "】");
+            System.out.println("-".repeat(80));
+
+            for (RagEvalCase evalCase : cases) {
+                Embedding queryEmbedding = embeddingModel.embed(evalCase.query()).content();
+                EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                        .queryEmbedding(queryEmbedding)
+                        .maxResults(maxResults)
+                        .minScore(minScore)
+                        .build();
+
+                EmbeddingSearchResult<TextSegment> result = embeddingStore.search(request);
+                List<EmbeddingMatch<TextSegment>> matches = result.matches();
+
+                if (evalCase.shouldRetrieve()) {
+                    positiveCount++;
+                    boolean anyHit = matches.stream()
+                            .map(match -> match.embedded().text())
+                            .anyMatch(text -> containsAny(text, evalCase.expectedKeywords()));
+                    boolean top1Matched = !matches.isEmpty()
+                            && containsAny(matches.get(0).embedded().text(), evalCase.expectedKeywords());
+
+                    if (anyHit) {
+                        positiveHit++;
+                    }
+                    if (top1Matched) {
+                        top1Hit++;
+                    }
+
+                    String status = top1Matched ? "✅" : anyHit ? "⚠️" : "❌";
+                    String scoreText = matches.isEmpty() ? "无结果"
+                            : String.format("Top1=%.3f", matches.get(0).score());
+                    System.out.println("  " + status + " 正例 \"" + evalCase.query() + "\" -> " + scoreText);
+                } else {
+                    negativeCount++;
+                    boolean clean = matches.isEmpty();
+                    if (clean) {
+                        negativeClean++;
+                    }
+
+                    String status = clean ? "✅" : "❌";
+                    String scoreText = matches.isEmpty() ? "无结果"
+                            : String.format("误召回Top1=%.3f", matches.get(0).score());
+                    System.out.println("  " + status + " 反例 \"" + evalCase.query() + "\" -> " + scoreText);
+                }
+            }
+
+            double positiveRecall = positiveCount == 0 ? 0 : (double) positiveHit / positiveCount;
+            double top1Accuracy = positiveCount == 0 ? 0 : (double) top1Hit / positiveCount;
+            double negativePrecision = negativeCount == 0 ? 0 : (double) negativeClean / negativeCount;
+            double weightedScore = top1Accuracy * 0.5 + positiveRecall * 0.3 + negativePrecision * 0.2;
+
+            System.out.println("  正例召回率: " + positiveHit + "/" + positiveCount
+                    + " = " + String.format("%.2f", positiveRecall));
+            System.out.println("  Top1命中率: " + top1Hit + "/" + positiveCount
+                    + " = " + String.format("%.2f", top1Accuracy));
+            System.out.println("  反例干净率: " + negativeClean + "/" + negativeCount
+                    + " = " + String.format("%.2f", negativePrecision));
+            System.out.println("  综合得分: " + String.format("%.3f", weightedScore));
+
+            if (weightedScore > bestScore) {
+                bestScore = weightedScore;
+                bestMinScore = minScore;
+            }
+        }
+
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("推荐 minScore: " + bestMinScore + "（基于当前标注样本）");
+        System.out.println("说明：这个值只对当前知识库和查询分布有效，后续应随着样本集持续更新。");
+        System.out.println("=".repeat(80));
+    }
+
+    private boolean containsAny(String text, List<String> keywords) {
+        return keywords.stream().anyMatch(text::contains);
+    }
+
+    private record RagEvalCase(String query, boolean shouldRetrieve, List<String> expectedKeywords) {
     }
 }

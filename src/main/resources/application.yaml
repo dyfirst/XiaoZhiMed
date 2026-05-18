@@ -39,6 +39,9 @@ langchain4j:
         api-key: ${DASHSCOPE_API_KEY}
         model-name: qwen-plus
         max-tokens: 4096
+      intent-router-chat-model:
+        model-name: qwen3.5-flash
+        max-tokens: 512
       embedding-model:  #文本向量模型
         api-key: ${DASHSCOPE_API_KEY}
         model-name: text-embedding-v4
