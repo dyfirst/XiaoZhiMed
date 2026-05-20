@@ -1,5 +1,19 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router';
+import { RouterView, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useChatStore } from '@/stores/chat';
+import { computed } from 'vue';
+
+const router = useRouter();
+const authStore = useAuthStore();
+const chatStore = useChatStore();
+const isLoggedIn = computed(() => authStore.hasToken);
+
+function handleLogout() {
+  authStore.logout();
+  chatStore.clearSessions();
+  router.push('/login');
+}
 </script>
 
 <template>
@@ -19,6 +33,10 @@ import { RouterView } from 'vue-router';
       </div>
 
       <div class="header-actions">
+        <div v-if="isLoggedIn" class="user-info">
+          <span class="user-name">{{ authStore.userName }}</span>
+          <button class="btn-logout" @click="handleLogout">退出</button>
+        </div>
         <div class="trust-card">
           <span class="trust-dot"></span>
           <div>
@@ -96,6 +114,34 @@ h1 {
   justify-content: flex-end;
   align-items: center;
   gap: 14px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.btn-logout {
+  padding: 6px 16px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  background: #fff;
+  color: #666;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  border-color: #f56c6c;
+  color: #f56c6c;
 }
 
 .trust-card {
