@@ -16,7 +16,7 @@ public class AppointmentToolTest {
 
     @Test
     public void test() {
-        String answer = xiaozhiAgent.chat(2L, "我想预约明天下午的神经外科", LocalDate.now().toString(), PROMPT)
+        String answer = xiaozhiAgent.chat("2:test-session", "我想预约明天下午的神经外科", LocalDate.now().toString(), PROMPT)
                 .collectList().block().toString();
         System.out.println(answer);
     }

@@ -14,7 +14,7 @@ public class MultiTurnTest {
     @Autowired
     private XiaozhiAgent xiaozhiAgent;
 
-    private static final Long TEST_USER_ID = 999999L;
+    private static final String TEST_MEMORY_ID = "999999:test-session";
     private static final String TODAY = LocalDate.now().toString();
     private static final String PROMPT = TestPromptSupport.loadPrompt();
 
@@ -39,7 +39,7 @@ public class MultiTurnTest {
             System.out.println("\n【第" + (i + 1) + "轮】用户: " + messages[i]);
             System.out.println("-".repeat(40));
 
-            List<String> response = xiaozhiAgent.chat(TEST_USER_ID, messages[i], TODAY, PROMPT)
+            List<String> response = xiaozhiAgent.chat(TEST_MEMORY_ID, messages[i], TODAY, PROMPT)
                     .collectList().block();
 
             String fullResponse = String.join("", response);
@@ -77,7 +77,7 @@ public class MultiTurnTest {
             System.out.println("\n【第" + (i + 1) + "轮】用户: " + messages[i]);
             System.out.println("-".repeat(40));
 
-            List<String> response = xiaozhiAgent.chat(TEST_USER_ID + 1, messages[i], TODAY, PROMPT)
+            List<String> response = xiaozhiAgent.chat(TEST_MEMORY_ID + "-2", messages[i], TODAY, PROMPT)
                     .collectList().block();
 
             String fullResponse = String.join("", response);

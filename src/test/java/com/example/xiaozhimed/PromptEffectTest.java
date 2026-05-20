@@ -15,7 +15,7 @@ public class PromptEffectTest {
     @Autowired
     private XiaozhiAgent xiaozhiAgent;
 
-    private static final Long TEST_USER_ID = 777777L;
+    private static final String TEST_MEMORY_ID = "777777:test-session";
     private static final String TODAY = LocalDate.now().toString();
 
     @Test
@@ -35,7 +35,7 @@ public class PromptEffectTest {
             System.out.println("\n【测试 " + (i + 1) + "】用户: " + queries[i]);
             System.out.println("-".repeat(50));
 
-            List<String> response = xiaozhiAgent.chat(TEST_USER_ID + i, queries[i], TODAY, PROMPT)
+            List<String> response = xiaozhiAgent.chat(TEST_MEMORY_ID + "-" + i, queries[i], TODAY, PROMPT)
                     .collectList().block();
             String fullResponse = String.join("", response);
 

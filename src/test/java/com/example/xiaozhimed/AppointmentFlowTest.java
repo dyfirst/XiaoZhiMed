@@ -20,7 +20,7 @@ public class AppointmentFlowTest {
     @Autowired
     private AppointmentService appointmentService;
 
-    private static final Long TEST_USER_ID = 888888L;
+    private static final String TEST_MEMORY_ID = "888888:test-session";
     private static final String TODAY = LocalDate.now().toString();
     private static final String PROMPT = TestPromptSupport.loadPrompt();
 
@@ -130,7 +130,7 @@ public class AppointmentFlowTest {
     }
 
     private String chat(String message) {
-        List<String> response = xiaozhiAgent.chat(TEST_USER_ID, message, TODAY, PROMPT)
+        List<String> response = xiaozhiAgent.chat(TEST_MEMORY_ID, message, TODAY, PROMPT)
                 .collectList().block();
         return String.join("", response);
     }
