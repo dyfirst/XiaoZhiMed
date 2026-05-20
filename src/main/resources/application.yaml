@@ -37,7 +37,7 @@ langchain4j:
     dashscope:
       chat-model:
         api-key: ${DASHSCOPE_API_KEY}
-        model-name: qwen-plus
+        model-name: qwen-max
         max-tokens: 4096
       intent-router-chat-model:
         model-name: qwen3.5-flash
@@ -47,8 +47,11 @@ langchain4j:
         model-name: text-embedding-v4
       streaming-chat-model:
         api-key: ${DASHSCOPE_API_KEY}
-        model-name: qwen-plus
+        model-name: qwen-max
         max-tokens: 4096
+
+jwt:
+  secret: xiaozhiMedJwtSecretKey2024!MustBe32BytesLong!!
 
 logging:
   level:

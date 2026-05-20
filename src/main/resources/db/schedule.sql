@@ -27,6 +27,24 @@ CREATE TABLE IF NOT EXISTS schedule_exception (
     UNIQUE KEY uk_exception (doctor_name, department, exception_date, time_slot)
 ) COMMENT '排班例外表';
 
+-- 用户表
+CREATE TABLE IF NOT EXISTS `user` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `phone` VARCHAR(11) NOT NULL COMMENT '手机号',
+    `name` VARCHAR(50) NOT NULL COMMENT '姓名',
+    `id_card` VARCHAR(18) DEFAULT NULL COMMENT '身份证号',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_phone` (`phone`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+-- 模拟用户数据
+INSERT INTO `user` (`phone`, `name`, `id_card`) VALUES
+('13800138000', '张三', '510101199001011234'),
+('13900139000', '李四', '510101199202022345'),
+('15000150000', '王五', '510101199303033456');
+
 -- 预约挂号表
 CREATE TABLE IF NOT EXISTS appointment (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
