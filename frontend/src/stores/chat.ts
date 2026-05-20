@@ -1,6 +1,8 @@
 import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import type { ChatMessage, ChatMessageStatus, ChatRole, ChatSession } from '@/types/chat';
+import { fetchSessions, updateSessionTitle, deleteRemoteSession } from '@/api/chatSessions';
+import { readPersistedToken } from '@/stores/auth';
 
 const CHAT_STORAGE_KEY = 'xiaozhi-med-chat';
 
@@ -13,16 +15,11 @@ function buildId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
-function createMemberId() {
-  return Number(String(Date.now()).slice(-6));
-}
-
-function createSession(title = '新会话', memberId = createMemberId()): ChatSession {
+function createSession(title = '新会话'): ChatSession {
   const now = new Date().toISOString();
   return {
     id: buildId('session'),
     title,
-    memberId,
     updatedAt: now,
     messages: [],
   };
@@ -106,7 +103,33 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function clearSessions() {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CHAT_STORAGE_KEY);
+    }
+    const fresh = createInitialState();
+    sessions.value = fresh.sessions;
+    activeSessionId.value = fresh.activeSessionId;
+  }
+
+  async function loadFromRemote() {
+    try {
+      const remoteSessions = await fetchSessions();
+      if (remoteSessions.length > 0) {
+        sessions.value = remoteSessions;
+        sortSessions();
+        activeSessionId.value = sessions.value[0].id;
+      } else {
+        clearSessions();
+      }
+    } catch {
+      // 加载失败时使用 localStorage
+    }
+  }
+
   function removeSession(sessionId: string) {
+    deleteRemoteSession(sessionId).catch(() => {});
+
     if (sessions.value.length === 1) {
       const session = createSession();
       sessions.value = [session];
@@ -121,16 +144,6 @@ export const useChatStore = defineStore('chat', () => {
     ensureSession();
   }
 
-  function updateSessionMember(sessionId: string, memberId: number) {
-    const session = sessions.value.find((item) => item.id === sessionId);
-    if (!session) {
-      return;
-    }
-
-    session.memberId = memberId;
-    touchSession(sessionId);
-  }
-
   function renameSessionFromPrompt(sessionId: string, prompt: string) {
     const session = sessions.value.find((item) => item.id === sessionId);
     if (!session) {
@@ -138,7 +151,10 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (session.title === '新会话' || session.messages.length <= 2) {
-      session.title = prompt.trim().slice(0, 18) || '新会话';
+      const newTitle = prompt.trim().slice(0, 18) || '新会话';
+      session.title = newTitle;
+      // 同步标题到后端
+      updateSessionTitle(sessionId, newTitle).catch(() => {});
     }
   }
 
@@ -195,18 +211,24 @@ export const useChatStore = defineStore('chat', () => {
     { deep: true },
   );
 
-  ensureSession();
+  // 初始化时如果有 token 则从远程加载
+  if (readPersistedToken()) {
+    loadFromRemote();
+  } else {
+    ensureSession();
+  }
 
   return {
     activeSessionId,
     sessions,
     activeSession,
     appendMessage,
+    clearSessions,
     createNewSession,
+    loadFromRemote,
     patchMessage,
     removeSession,
     renameSessionFromPrompt,
     switchSession,
-    updateSessionMember,
   };
 });

@@ -16,7 +16,7 @@ import reactor.core.publisher.Flux;
 public interface ChatOnlyAgent {
 
     @SystemMessage("{{prompt_content}}")
-    Flux<String> chat(@MemoryId Long memoryId,
+    Flux<String> chat(@MemoryId String memoryId,
                       @UserMessage String userMessage,
                       @V("current_date") String currentDate,
                       @V("prompt_content") String promptContent);

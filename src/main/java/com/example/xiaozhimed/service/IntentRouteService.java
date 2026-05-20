@@ -4,5 +4,5 @@ import com.example.xiaozhimed.bean.IntentRouteDecision;
 
 public interface IntentRouteService {
 
-    IntentRouteDecision route(Long memberId, String message);
+    IntentRouteDecision route(Long userId, String message);
 }

@@ -2,6 +2,8 @@ package com.example.xiaozhimed.tools;
 
 import com.example.xiaozhimed.entity.Appointment;
 import com.example.xiaozhimed.entity.DoctorSchedule;
+import com.example.xiaozhimed.entity.User;
+import com.example.xiaozhimed.mapper.UserMapper;
 import com.example.xiaozhimed.service.AppointmentService;
 import com.example.xiaozhimed.service.ScheduleService;
 import dev.langchain4j.agent.tool.P;
@@ -29,31 +31,40 @@ public class AppointmentTools {
     @Autowired
     private ScheduleService scheduleService;
 
-    @Tool(name = "预约挂号", value = "在用户确认所有预约信息后调用此工具完成预约。如果用户没有提供具体的医生姓名，可以不填。预约前请确保已收集完整信息并让用户确认。")
-    public String bookAppointment(Appointment appointment) {
-        log.info("AI调用预约工具: {}", appointment);
+    @Autowired
+    private UserMapper userMapper;
+
+    @Tool(name = "预约挂号", value = "在用户确认预约信息后调用此工具完成预约。用户信息（姓名、身份证号）已自动获取，不需要用户提供。只需要科室、日期、时间，医生可选。")
+    public String bookAppointment(
+            @P(value = "用户ID") Long userId,
+            @P(value = "预约科室") String department,
+            @P(value = "预约日期，格式yyyy-MM-dd") String date,
+            @P(value = "预约时间，上午或下午") String time,
+            @P(value = "预约医生姓名，可选", required = false) String doctorName
+    ) {
+        log.info("AI调用预约工具: userId={}, department={}, date={}, time={}, doctor={}", userId, department, date, time, doctorName);
 
         try {
+            // 获取用户信息
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                return "预约失败：用户信息不存在，请重新登录";
+            }
+
             // 参数校验
-            if (StringUtils.isBlank(appointment.getUsername())) {
-                return "预约失败：姓名不能为空";
-            }
-            if (StringUtils.isBlank(appointment.getIdCard())) {
-                return "预约失败：身份证号不能为空";
-            }
-            if (StringUtils.isBlank(appointment.getDepartment())) {
+            if (StringUtils.isBlank(department)) {
                 return "预约失败：科室不能为空";
             }
-            if (StringUtils.isBlank(appointment.getDate())) {
+            if (StringUtils.isBlank(date)) {
                 return "预约失败：日期不能为空";
             }
-            if (StringUtils.isBlank(appointment.getTime())) {
+            if (StringUtils.isBlank(time)) {
                 return "预约失败：时间不能为空";
             }
 
             // 日期校验
             try {
-                LocalDate appointDate = LocalDate.parse(appointment.getDate(), DateTimeFormatter.ISO_LOCAL_DATE);
+                LocalDate appointDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
                 if (appointDate.isBefore(LocalDate.now())) {
                     return "预约失败：不能预约过去的日期，请重新选择";
                 }
@@ -62,23 +73,34 @@ public class AppointmentTools {
             }
 
             // 时间校验
-            if (!"上午".equals(appointment.getTime()) && !"下午".equals(appointment.getTime())) {
+            if (!"上午".equals(time) && !"下午".equals(time)) {
                 return "预约失败：时间只能是上午或下午";
             }
+
+            // 构建预约对象
+            Appointment appointment = new Appointment();
+            appointment.setUsername(user.getName());
+            appointment.setIdCard(user.getIdCard());
+            appointment.setDepartment(department);
+            appointment.setDate(date);
+            appointment.setTime(time);
+            appointment.setDoctorName(doctorName);
 
             // 查询重复预约
             Appointment appointmentDB = appointmentService.getOne(appointment);
             if (appointmentDB != null) {
-                return "您在" + appointment.getDepartment() + " " + appointment.getDate() + " " + appointment.getTime() + "已有预约，无需重复预约";
+                return "您在" + department + " " + date + " " + time + "已有预约，无需重复预约";
             }
 
             // 保存预约
             appointment.setId(null);
             if (appointmentService.save(appointment)) {
-                return "预约成功！预约信息：科室=" + appointment.getDepartment()
-                        + "，日期=" + appointment.getDate()
-                        + "，时间=" + appointment.getTime()
-                        + "，姓名=" + appointment.getUsername();
+                String doctorPart = StringUtils.isBlank(doctorName) ? "未指定医生" : doctorName;
+                return "预约成功！预约信息：科室=" + department
+                        + "，日期=" + date
+                        + "，时间=" + time
+                        + "，医生=" + doctorPart
+                        + "，姓名=" + user.getName();
             } else {
                 return "预约失败：系统异常，请稍后再试";
             }
@@ -88,15 +110,32 @@ public class AppointmentTools {
         }
     }
 
-    @Tool(name = "取消预约挂号", value = "根据参数，查询预约是否存在，如果存在则删除预约记录并返回取消预约成功，否则返回取消预约失败")
-    public String cancelAppointment(Appointment appointment) {
-        log.info("AI调用取消预约工具: {}", appointment);
+    @Tool(name = "取消预约挂号", value = "根据用户ID和预约信息，查询并取消预约。用户信息已自动获取。")
+    public String cancelAppointment(
+            @P(value = "用户ID") Long userId,
+            @P(value = "预约科室") String department,
+            @P(value = "预约日期，格式yyyy-MM-dd") String date,
+            @P(value = "预约时间，上午或下午") String time
+    ) {
+        log.info("AI调用取消预约工具: userId={}, department={}, date={}, time={}", userId, department, date, time);
 
         try {
-            Appointment appointmentDB = appointmentService.getOne(appointment);
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                return "取消预约失败：用户信息不存在";
+            }
+
+            Appointment query = new Appointment();
+            query.setUsername(user.getName());
+            query.setIdCard(user.getIdCard());
+            query.setDepartment(department);
+            query.setDate(date);
+            query.setTime(time);
+
+            Appointment appointmentDB = appointmentService.getOne(query);
             if (appointmentDB != null) {
                 if (appointmentService.removeById(appointmentDB.getId())) {
-                    return "取消预约成功！已取消" + appointmentDB.getDepartment() + " " + appointmentDB.getDate() + " " + appointmentDB.getTime() + "的预约";
+                    return "取消预约成功！已取消" + department + " " + date + " " + time + "的预约";
                 } else {
                     return "取消预约失败：系统异常，请稍后再试";
                 }
@@ -108,29 +147,24 @@ public class AppointmentTools {
         }
     }
 
-    @Tool(name = "查询我的预约记录", value = "当用户询问自己的预约记录、已预约号源、已挂的号时调用。必须先确认用户姓名和身份证号，查询成功后返回用户当前的预约列表。")
-    public String queryMyAppointments(
-            @P(value = "姓名") String username,
-            @P(value = "身份证号") String idCard
-    ) {
-        log.info("AI调用预约记录查询工具: username={}, idCard={}", username, idCard);
+    @Tool(name = "查询我的预约记录", value = "查询当前用户的预约记录。用户信息已自动获取，不需要提供姓名和身份证号。")
+    public String queryMyAppointments(@P(value = "用户ID") Long userId) {
+        log.info("AI调用预约记录查询工具: userId={}", userId);
 
-        if (StringUtils.isBlank(username)) {
-            return "查询失败：请先提供您的姓名";
-        }
-        if (StringUtils.isBlank(idCard)) {
-            return "查询失败：请先提供您的身份证号";
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return "查询失败：用户信息不存在";
         }
 
         List<Appointment> appointments = appointmentService.lambdaQuery()
-                .eq(Appointment::getUsername, username)
-                .eq(Appointment::getIdCard, idCard)
+                .eq(Appointment::getUsername, user.getName())
+                .eq(Appointment::getIdCard, user.getIdCard())
                 .orderByAsc(Appointment::getDate)
                 .orderByAsc(Appointment::getTime)
                 .list();
 
         if (appointments.isEmpty()) {
-            return "当前未查询到您的预约记录，请确认姓名和身份证号是否正确。";
+            return "当前未查询到您的预约记录。";
         }
 
         List<String> lines = new ArrayList<>();
@@ -248,17 +282,6 @@ public class AppointmentTools {
                     return sb.toString();
                 }
 
-                // 检查该医生是否已有预约
-                Appointment query = new Appointment();
-                query.setDepartment(name);
-                query.setDate(appointDate.toString());
-                query.setTime(time);
-                query.setDoctorName(doctorName);
-                Appointment existing = appointmentService.getOne(query);
-                if (existing != null) {
-                    return "您在" + name + " " + appointDate + " " + time + " 医生【" + doctorName + "】已有预约";
-                }
-
                 return "医生【" + doctorName + "】在 " + appointDate + " " + time + " 有号源可预约。\n擅长领域：" + getDoctorSpecialty(availableDoctors, doctorName);
             }
 
@@ -292,20 +315,14 @@ public class AppointmentTools {
                 .orElse("暂无信息");
     }
 
-    /**
-     * 获取最近的工作日（跳过周末）
-     */
     private LocalDate getNextWorkday(LocalDate date) {
         LocalDate result = date;
-        while (result.getDayOfWeek().getValue() >= 6) { // 6=周六, 7=周日
+        while (result.getDayOfWeek().getValue() >= 6) {
             result = result.plusDays(1);
         }
         return result;
     }
 
-    /**
-     * 获取科室全部医生信息（含排班摘要）
-     */
     private String getAllDoctorsInfo(String department) {
         List<DoctorSchedule> allSchedules = scheduleService.getAllSchedules(department);
 
@@ -316,7 +333,6 @@ public class AppointmentTools {
         StringBuilder result = new StringBuilder();
         result.append("科室【").append(department).append("】的医生团队：\n");
 
-        // 按医生分组，收集排班信息
         Map<String, List<DoctorSchedule>> doctorMap = allSchedules.stream()
                 .collect(Collectors.groupingBy(DoctorSchedule::getDoctorName));
 
@@ -326,13 +342,11 @@ public class AppointmentTools {
             String doctorName = entry.getKey();
             List<DoctorSchedule> schedules = entry.getValue();
 
-            // 取第一条记录的职称和擅长
             DoctorSchedule first = schedules.get(0);
             result.append("\n🔹 ").append(doctorName)
                     .append("（").append(first.getTitle()).append("）")
                     .append("\n   擅长：").append(first.getSpecialty());
 
-            // 汇总排班时间
             StringBuilder scheduleStr = new StringBuilder();
             for (DoctorSchedule s : schedules) {
                 if (scheduleStr.length() > 0) scheduleStr.append("、");

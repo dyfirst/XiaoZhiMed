@@ -31,7 +31,7 @@ public class IntentRouteServiceImpl implements IntentRouteService {
     }
 
     @Override
-    public IntentRouteDecision route(Long memberId, String message) {
+    public IntentRouteDecision route(Long userId, String message) {
         String normalized = StringUtils.trimToEmpty(message);
 
         IntentRouteDecision ruleDecision = routeByRules(normalized);
@@ -39,7 +39,7 @@ public class IntentRouteServiceImpl implements IntentRouteService {
             return ruleDecision;
         }
 
-        String routerInput = buildRouterInput(memberId, normalized);
+        String routerInput = buildRouterInput(userId, normalized);
         try {
             IntentRouteDecision decision = intentRouterAgent.classify(routerInput);
             if (decision == null || StringUtils.isBlank(decision.getRoute())) {
@@ -47,7 +47,7 @@ public class IntentRouteServiceImpl implements IntentRouteService {
             }
             return normalizeDecision(decision);
         } catch (Exception e) {
-            log.warn("意图路由模型调用失败，降级为CHAT: memberId={}", memberId, e);
+            log.warn("意图路由模型调用失败，降级为CHAT: userId={}", userId, e);
             return new IntentRouteDecision("CHAT", 0.0, "路由模型异常，降级为普通回答");
         }
     }
@@ -66,12 +66,12 @@ public class IntentRouteServiceImpl implements IntentRouteService {
         return keywords.stream().anyMatch(message::contains);
     }
 
-    private String buildRouterInput(Long memberId, String message) {
+    private String buildRouterInput(Long userId, String message) {
         return """
                 当前用户ID：%d
                 当前用户消息：
                 %s
-                """.formatted(memberId, message);
+                """.formatted(userId, message);
     }
 
     private IntentRouteDecision normalizeDecision(IntentRouteDecision decision) {

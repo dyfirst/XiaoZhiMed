@@ -13,12 +13,11 @@ export interface ChatMessage {
 export interface ChatSession {
   id: string;
   title: string;
-  memberId: number;
   updatedAt: string;
   messages: ChatMessage[];
 }
 
 export interface ChatPayload {
-  memberId: number;
+  sessionId: string;
   message: string;
 }

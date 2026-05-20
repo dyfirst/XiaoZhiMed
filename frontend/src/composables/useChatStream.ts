@@ -111,7 +111,7 @@ export function useChatStream() {
     const assistantMessageId = chatStore.appendMessage(session.id, 'assistant', '', 'streaming');
 
     const payload: ChatPayload = {
-      memberId: session.memberId,
+      sessionId: session.id,
       message: content,
     };
 
